@@ -15,7 +15,7 @@ template:
   config:
     aws:region:
       description: AWS region to deploy into
-      default: ap-southeast-1a
+      default: ap-southeast-1
     dbName:
       description: Database name in MySQL that will be created & used by Webapp and Vault
       default: my_database
