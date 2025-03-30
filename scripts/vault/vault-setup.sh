@@ -19,7 +19,7 @@ apt update && apt install -y wget jq redis-tools unzip
 
 if ! command -v aws &>/dev/null; then
 	curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip" 2>/dev/null
-	unzip awscliv2.zip
+	unzip awscliv2.zip &>/dev/null
 	./aws/install
 fi
 
@@ -41,7 +41,7 @@ chown -R vault:vault ${VAULT_DATA}
 chmod -R 750 ${VAULT_DATA}
 
 cat >${VAULT_CONFIG}/vault.hcl <<EOF
-ui = true
+ui = false
 api_addr = "http://${VAULT_HOST_IP}:8200"
 disable_mlock = false
 
