@@ -9,7 +9,7 @@ PRIVATE_SUBNET_CIDR = '10.0.2.0/24'
 PUBLIC_SUBNET_CIDR = '10.0.1.0/24'
 
 config = pulumi.Config()
-AZ_NAME = config.require("aws:region")
+AZ_NAME = aws.get_region()
 DB_NAME = config.require("dbName")
 DB_VAULT_USER = config.require("dbVaultUser")
 
