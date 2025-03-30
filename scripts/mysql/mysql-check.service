@@ -1,0 +1,18 @@
+[Unit]
+Description=Keeps MySQL healthcheck service up and running
+After=network.target
+
+[Service]
+Type=simple
+EnvironmentFile=/etc/environment
+ExecStart=/usr/local/bin/mysql-check.sh
+Restart=on-failure
+RestartSec=30
+StandardOutput=append:/var/log/mysql-check.log
+StandardError=append:/var/log/mysql-check.log
+RemainAfterExit=yes
+User=mysql
+Group=mysql
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,17 @@
+[Unit]
+Description=Keeps vault up and running by doing automatic unsealing
+After=vault.service
+Requires=vault.service
+
+[Service]
+Type=simple
+EnvironmentFile=/etc/environment
+ExecStart=/usr/local/bin/vault-setup.sh
+Restart=on-failure
+RestartSec=5
+RemainAfterExit=yes
+User=root
+Group=root
+
+[Install]
+WantedBy=multi-user.target

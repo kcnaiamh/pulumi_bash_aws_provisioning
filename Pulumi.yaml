@@ -1,0 +1,11 @@
+name: pulumi_bash_aws_provisioning
+description: This project provisions a secure website using Pulumi (Python) on AWS, integrating Vault for dynamically generating temporary database credentials and Redis for health monitoring.
+runtime:
+  name: python
+  options:
+    toolchain: pip
+    virtualenv: venv
+config:
+  pulumi:tags:
+    value:
+      pulumi:template: aws-python

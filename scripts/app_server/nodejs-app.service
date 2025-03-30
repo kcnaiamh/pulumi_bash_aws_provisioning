@@ -1,0 +1,16 @@
+[Unit]
+Description=Keeps NodeJS application up & running
+After=network.target
+
+[Service]
+Type=simple
+EnvironmentFile=/etc/environment
+WorkingDirectory=/opt/app/src
+ExecStart=/usr/bin/node app.js
+Restart=always
+RestartSec=10
+User=nodejs
+Group=nodejs
+
+[Install]
+WantedBy=multi-user.target
