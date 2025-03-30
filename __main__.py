@@ -5,10 +5,15 @@ import secrets
 import string
 
 VPC_CIDR = '10.0.0.0/16'
-PUBLIC_SUBNET_CIDR = '10.0.1.0/24'
 PRIVATE_SUBNET_CIDR = '10.0.2.0/24'
-DB_NAME = 'my_database'
-DB_VAULT_USER = 'vault_admin'
+PUBLIC_SUBNET_CIDR = '10.0.1.0/24'
+
+config = pulumi.Config()
+AZ_NAME = config.require("aws:region")
+DB_NAME = config.require("dbName")
+DB_VAULT_USER = config.require("dbVaultUser")
+
+
 
 def read_file(file_path: str) -> str:
     with open(f'./{file_path}', 'r') as fd:
@@ -45,7 +50,7 @@ public_subnet = aws.ec2.Subnet(
     vpc_id=vpc.id,
     cidr_block=PUBLIC_SUBNET_CIDR,
     map_public_ip_on_launch=True,
-    availability_zone='ap-southeast-1a',
+    availability_zone=AZ_NAME,
     tags={
         'Name': 'poc-public-subnet'
     }
@@ -56,7 +61,7 @@ private_subnet = aws.ec2.Subnet(
     vpc_id=vpc.id,
     cidr_block=PRIVATE_SUBNET_CIDR,
     map_public_ip_on_launch=False,
-    availability_zone='ap-southeast-1a',
+    availability_zone=AZ_NAME,
     tags={
         'Name': 'poc-private-subnet'
     }
