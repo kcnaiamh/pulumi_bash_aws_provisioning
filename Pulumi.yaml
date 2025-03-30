@@ -5,7 +5,20 @@ runtime:
   options:
     toolchain: pip
     virtualenv: venv
+
 config:
   pulumi:tags:
     value:
       pulumi:template: aws-python
+
+template:
+  config:
+    aws:region:
+      description: AWS region to deploy into
+      default: ap-southeast-1a
+    dbName:
+      description: Database name in MySQL that will be created & used by Webapp and Vault
+      default: my_database
+    dbVaultUser:
+      description: Username that will be created & used by Vault
+      default: vault_admin
