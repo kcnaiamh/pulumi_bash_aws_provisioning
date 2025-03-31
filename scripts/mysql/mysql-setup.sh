@@ -56,24 +56,8 @@ FLUSH PRIVILEGES;
 EOF
 
 
-# Define Schema in a Separate SQL File
-cat > /tmp/schema.sql <<EOF
-USE ${DB_NAME};
-CREATE TABLE IF NOT EXISTS users (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    username VARCHAR(50) NOT NULL,
-    email VARCHAR(100) NOT NULL UNIQUE,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-INSERT IGNORE INTO users (username, email) VALUES
-    ('alice', 'alice@example.com'),
-    ('bob', 'bob@example.com'),
-    ('charlie', 'charlie@example.com');
-EOF
-
-
 # Load Schema
-mysql --defaults-file=/root/.my.cnf < /tmp/schema.sql
+mysql --defaults-file=/root/.my.cnf --database="${DB_NAME}" < /tmp/schema.sql
 rm -f /tmp/schema.sql  # Cleanup
 
 echo "MySQL setup completed successfully!"
