@@ -22,3 +22,6 @@ template:
     dbVaultUser:
       description: Username that will be created & used by Vault
       default: vault_admin
+    sshKeyName:
+      description: SSH Key Name for EC2
+      default: master-key
