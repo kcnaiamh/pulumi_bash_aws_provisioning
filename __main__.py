@@ -11,6 +11,7 @@ PUBLIC_SUBNET_CIDR = '10.0.1.0/24'
 config = pulumi.Config()
 DB_NAME = config.require("dbName")
 DB_VAULT_USER = config.require("dbVaultUser")
+SSH_KEY_NAME = config.require("sshKeyName")
 AZ_NAME = aws.get_availability_zones(state="available").names[0]
 
 
@@ -33,6 +34,28 @@ def gen_password(n: int) -> str:
     secrets.SystemRandom().shuffle(password_list)  # Secure shuffle
 
     return ''.join(password_list)
+
+def create_ssh_key():
+    key_pair = aws.ec2.KeyPair(
+        SSH_KEY_NAME,
+        key_name=SSH_KEY_NAME,
+        opts=pulumi.ResourceOptions(protect=False), #protect is set to false to allow for deletion if needed.
+    )
+
+    def save_private_key(args):
+        private_key = args.private_key
+        if private_key:
+            file_path = os.path.expanduser(f"~/.ssh/{SSH_KEY_NAME}.id_rsa")
+            with open(file_path, "w") as f:
+                f.write(private_key)
+            os.chmod(file_path, 0o400)
+            pulumi.log.info(f"Key pair '{SSH_KEY_NAME}' created and saved to {file_path}")
+        else:
+            pulumi.log.error(f"Error: Unable to retrieve private key for '{SSH_KEY_NAME}'.")
+
+    key_pair.private_key.apply(save_private_key)
+
+create_ssh_key()
 
 vpc = aws.ec2.Vpc(
     resource_name='poc-vpc',
@@ -340,7 +363,7 @@ redis_ec2 = aws.ec2.Instance(
     instance_type = 't2.micro',
     ami = 'ami-01811d4912b4ccb26',
     subnet_id = private_subnet.id,
-    key_name = 'master-key',
+    key_name = SSH_KEY_NAME,
     vpc_security_group_ids=[
         redis_security_group.id
     ],
@@ -363,6 +386,7 @@ redis_ec2 = aws.ec2.Instance(
 mysql_setup_script = read_file('scripts/mysql/mysql-setup.sh')
 mysql_hcheck_script = read_file('scripts/mysql/mysql-check.sh')
 mysql_hcheck_service = read_file('scripts/mysql/mysql-check.service')
+db_schema = read_file('scripts/mysql/schema.sql')
 
 
 DB_VAULT_PASS = gen_password(12)
@@ -397,6 +421,10 @@ cat > /usr/local/bin/mysql-setup.sh << 'FINAL'
 {mysql_setup_script}
 FINAL
 
+cat > /tmp/schema.sql << 'EOF'
+{db_schema}
+EOF
+
 chmod u+x /usr/local/bin/mysql-check.sh
 chmod +x /usr/local/bin/mysql-setup.sh
 
@@ -415,7 +443,7 @@ db = aws.ec2.Instance(
     instance_type = 't2.micro',
     ami = 'ami-01811d4912b4ccb26',
     subnet_id = private_subnet.id,
-    key_name = 'master-key',
+    key_name = SSH_KEY_NAME,
     vpc_security_group_ids=[
         db_security_group.id
     ],
@@ -491,7 +519,7 @@ vault_ec2 = aws.ec2.Instance(
     ami = 'ami-01811d4912b4ccb26',
     iam_instance_profile=instance_profile.name,
     subnet_id = private_subnet.id,
-    key_name = 'master-key',
+    key_name = SSH_KEY_NAME,
     vpc_security_group_ids=[
         vault_security_group.id
     ],
@@ -551,7 +579,7 @@ nodejs = aws.ec2.Instance(
     ami='ami-01811d4912b4ccb26',
     iam_instance_profile=instance_profile.name,
     subnet_id=public_subnet.id,
-    key_name='master-key',
+    key_name=SSH_KEY_NAME,
     vpc_security_group_ids=[
         nodejs_security_group.id
     ],
@@ -572,25 +600,25 @@ def create_config_file(all_ips):
 Host nodejs-server
     HostName {all_ips[0]}
     User ubuntu
-    IdentityFile ~/.ssh/master-key.id_rsa
+    IdentityFile ~/.ssh/{SSH_KEY_NAME}.id_rsa
 
 Host db-server
     ProxyJump nodejs-server
     HostName {all_ips[1]}
     User ubuntu
-    IdentityFile ~/.ssh/master-key.id_rsa
+    IdentityFile ~/.ssh/{SSH_KEY_NAME}.id_rsa
 
 Host redis-server
     ProxyJump nodejs-server
     HostName {all_ips[2]}
     User ubuntu
-    IdentityFile ~/.ssh/master-key.id_rsa
+    IdentityFile ~/.ssh/{SSH_KEY_NAME}.id_rsa
 
 Host vault-server
     ProxyJump nodejs-server
     HostName {all_ips[3]}
     User ubuntu
-    IdentityFile ~/.ssh/master-key.id_rsa
+    IdentityFile ~/.ssh/{SSH_KEY_NAME}.id_rsa
 '''
     config_path = os.path.expanduser("~/.ssh/config")
     with open(config_path, "w") as config_file:
