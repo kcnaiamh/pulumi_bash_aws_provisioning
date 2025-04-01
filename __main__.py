@@ -1,5 +1,6 @@
 import pulumi
 import pulumi_aws as aws
+import pulumi_tls as tls
 import os
 import secrets
 import string
@@ -36,26 +37,40 @@ def gen_password(n: int) -> str:
     return ''.join(password_list)
 
 def create_ssh_key():
-    key_pair = aws.ec2.KeyPair(
-        SSH_KEY_NAME,
-        key_name=SSH_KEY_NAME,
-        opts=pulumi.ResourceOptions(protect=False), #protect is set to false to allow for deletion if needed.
-    )
+    try:
+        existing_key = aws.ec2.get_key_pair(key_name=SSH_KEY_NAME)
+        key_name = existing_key.key_name  # Use existing key
+        print(f"Using existing AWS key pair: {key_name}")
+        aws_key = None  # No need to create a new key
 
-    def save_private_key(args):
-        private_key = args.private_key
-        if private_key:
-            file_path = os.path.expanduser(f"~/.ssh/{SSH_KEY_NAME}.id_rsa")
-            with open(file_path, "w") as f:
-                f.write(private_key)
-            os.chmod(file_path, 0o400)
-            pulumi.log.info(f"Key pair '{SSH_KEY_NAME}' created and saved to {file_path}")
-        else:
-            pulumi.log.error(f"Error: Unable to retrieve private key for '{SSH_KEY_NAME}'.")
+    except:
+        print(f"Key pair '{SSH_KEY_NAME}' not found. Creating a new one...")
 
-    key_pair.private_key.apply(save_private_key)
+        ssh_key = tls.PrivateKey(
+            SSH_KEY_NAME,
+            algorithm="RSA",
+            rsa_bits=4096,
+        )
 
-create_ssh_key()
+        aws_key = aws.ec2.KeyPair(
+            SSH_KEY_NAME,
+            key_name=SSH_KEY_NAME,
+            public_key=ssh_key.public_key_openssh
+        )
+
+        # Save private key locally
+        private_key_path = os.path.expanduser(f"~/.ssh/{SSH_KEY_NAME}.id_rsa")
+
+        def write_private_key(private_key_pem):
+            with open(private_key_path, "w") as private_key_file:
+                private_key_file.write(private_key_pem)
+            os.chmod(private_key_path, 0o600)  # Secure the private key file
+
+        ssh_key.private_key_pem.apply(write_private_key)
+
+    return aws_key
+
+aws_key = create_ssh_key()
 
 vpc = aws.ec2.Vpc(
     resource_name='poc-vpc',
@@ -379,7 +394,7 @@ redis_ec2 = aws.ec2.Instance(
             nat_gateway,
             private_route_table_association,
             private_subnet
-        ]
+        ] + ([aws_key] if aws_key else [])
     )
 )
 
@@ -457,7 +472,7 @@ db = aws.ec2.Instance(
     opts=pulumi.ResourceOptions(
         depends_on=[
             redis_ec2
-        ]
+        ] + ([aws_key] if aws_key else [])
     )
 )
 
@@ -533,7 +548,7 @@ vault_ec2 = aws.ec2.Instance(
     opts=pulumi.ResourceOptions(
         depends_on=[
             db
-        ]
+        ] + ([aws_key] if aws_key else [])
     )
 )
 
@@ -590,7 +605,10 @@ nodejs = aws.ec2.Instance(
     user_data_replace_on_change=True,
     tags={
         'Name': 'nodejs-server'
-    }
+    },
+    opts=pulumi.ResourceOptions(
+        depends_on=[] + ([aws_key] if aws_key else [])
+    )
 )
 
 all_ips = [nodejs.public_ip, db.private_ip, redis_ec2.private_ip, vault_ec2.private_ip]
