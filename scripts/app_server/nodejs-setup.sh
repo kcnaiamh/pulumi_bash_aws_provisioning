@@ -57,7 +57,7 @@ function main() {
 
     # Clone application repository
     APP_DIR="/opt/app"
-    if [[ ! -d "$APP_DIR" ]]; then
+    if [[ -z "$(ls -A $APP_DIR)" ]]; then
         git clone https://github.com/kcnaiamh/Demo-App-1.git "$APP_DIR"
     else
         echo "Application directory already exists"
