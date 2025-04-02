@@ -191,9 +191,10 @@ chmod 500 /usr/local/bin/vault-setup.sh
 chown vault:vault /usr/local/bin/vault-check.sh
 chmod 500 /usr/local/bin/vault-check.sh
 
-sleep 120
-systemctl enable --now vault-run.service
 systemctl enable --now vault-check.service
+
+sleep 240
+systemctl enable --now vault-run.service
 '''
 
     vault_ec2 = aws.ec2.Instance(
