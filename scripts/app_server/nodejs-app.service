@@ -1,16 +1,34 @@
+# NodeJS Application Service Unit File
+# This service ensures a NodeJS application runs continuously and automatically restarts
+# if it crashes or the system reboots. It includes resource limits and proper logging.
+
 [Unit]
 Description=Keeps NodeJS application up & running
+# Ensure network is available before starting the application
 After=network.target
 
 [Service]
-Type=simple
+# Use 'exec' type for direct execution (no forking) - best for NodeJS services
+Type=exec
+# Load environment variables (e.g., database URLs, API keys) from system file
 EnvironmentFile=/etc/environment
+# Set working directory to application root (for relative path resolution)
 WorkingDirectory=/opt/app/src
-ExecStart=/usr/bin/node app.js
+# Launch the NodeJS application (using /usr/bin/env for PATH flexibility)
+ExecStart=/usr/bin/env node app.js
+# Restart under all circumstances (including clean exits if needed)
 Restart=always
-RestartSec=10
+# Wait 5 seconds before restarting to avoid thrashing
+RestartSec=5
+# Log both stdout and stderr to systemd journal for centralized logging
+StandardOutput=journal
+StandardError=journal
+# Increase file descriptor limit for high-connection scenarios
+LimitNOFILE=65535
+# Run as dedicated 'nodejs' user/group for security isolation
 User=nodejs
 Group=nodejs
 
 [Install]
+# Start automatically when reaching multi-user mode (normal server operation)
 WantedBy=multi-user.target

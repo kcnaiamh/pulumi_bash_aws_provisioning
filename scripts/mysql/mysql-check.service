@@ -1,18 +1,30 @@
+# MySQL Healthcheck Service Unit File
+# This service ensures continuous monitoring of MySQL availability by running mysql-check.sh script
+# If the mysql-check.sh process somehow stopped, it automatically restarts after a delay
+
 [Unit]
 Description=Keeps MySQL healthcheck service up and running
+# Ensure network is available before starting this service
 After=network.target
 
 [Service]
 Type=simple
+# Load environment variables from system environment file
 EnvironmentFile=/etc/environment
+# Script that performs MySQL health checks
 ExecStart=/usr/local/bin/mysql-check.sh
+# Automatically restart on failure with 5-second delay
 Restart=on-failure
-RestartSec=30
-StandardOutput=append:/var/log/mysql-check.log
-StandardError=append:/var/log/mysql-check.log
+RestartSec=5
+# Send output to systemd journal for logging
+StandardOutput=journal
+StandardError=journal
+# Service is considered active even after ExecStart exits (since it's a monitoring script)
 RemainAfterExit=yes
+# Run as mysql user for proper permissions
 User=mysql
 Group=mysql
 
 [Install]
+# Start this service when reaching multi-user mode (normal system operation)
 WantedBy=multi-user.target

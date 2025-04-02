@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
-set -ex
+# Exit on error, trace commands, don't allow unset variables,
+# pileline status code is 0 iff all commands in pipeline has status code 0
+set -euxo pipefail
 exec > >(tee -a /var/log/mysql-setup.log) 2>&1
+
+echo "Starting MySQL setup at $(date)"
 
 source /etc/environment
 
@@ -12,7 +16,8 @@ DB_VAULT_PASS="${DB_VAULT_PASS}"
 PRIVATE_SUBNET="$(echo "${PRIVATE_SUBNET_CIDR}" | awk -F'[./]' '{print $1"."$2"."$3".%"}')"
 
 
-apt update && apt install -y mysql-server redis-tools
+apt update
+apt install -y mysql-server redis-tools
 
 
 if ! systemctl is-active --quiet mysql.service; then
@@ -25,9 +30,12 @@ echo "Configuring MySQL for remote access..."
 sed -i 's/bind-address\s*=.*/bind-address = 0.0.0.0/' /etc/mysql/mysql.conf.d/mysqld.cnf
 systemctl restart mysql
 
+# ---------------------------------------------------------------------------- #
+# SET DATABASE ROOT USER PASSWORD
+# ---------------------------------------------------------------------------- #
 
-mysql --defaults-file=/etc/mysql/debian.cnf -e "ALTER USER 'root'@'localhost' IDENTIFIED WITH caching_sha2_password BY '${DB_ROOT_PASS}'; FLUSH PRIVILEGES;"
-
+mysql --defaults-file=/etc/mysql/debian.cnf \
+       -e "ALTER USER 'root'@'localhost' IDENTIFIED WITH caching_sha2_password BY '${DB_ROOT_PASS}';"
 
 cat > /root/.my.cnf <<EOF
 [client]
@@ -37,8 +45,9 @@ EOF
 
 chmod 600 /root/.my.cnf
 
-
-# mysql_secure_installation
+# ---------------------------------------------------------------------------- #
+# MYSQL SECURE INSTALLATION
+# ---------------------------------------------------------------------------- #
 mysql --defaults-file=/root/.my.cnf <<EOF
 DELETE FROM mysql.user WHERE User='';
 DELETE FROM mysql.user WHERE User='root' AND Host NOT IN ('localhost', '127.0.0.1', '::1');
@@ -46,7 +55,9 @@ DROP DATABASE IF EXISTS test; DELETE FROM mysql.db WHERE Db='test';
 FLUSH PRIVILEGES;
 EOF
 
-
+# ---------------------------------------------------------------------------- #
+# VAULT USER CREATION & PERMISSION SETUP
+# ---------------------------------------------------------------------------- #
 mysql --defaults-file=/root/.my.cnf <<EOF
 CREATE DATABASE IF NOT EXISTS ${DB_NAME};
 CREATE USER IF NOT EXISTS '${DB_VAULT_USER}'@'${PRIVATE_SUBNET}' IDENTIFIED WITH caching_sha2_password BY '${DB_VAULT_PASS}';
@@ -56,8 +67,10 @@ FLUSH PRIVILEGES;
 EOF
 
 
-# Load Schema
+# ---------------------------------------------------------------------------- #
+# RUN schema.sql TO CREATE DATABASE SCHEMA
+# ---------------------------------------------------------------------------- #
 mysql --defaults-file=/root/.my.cnf --database="${DB_NAME}" < /tmp/schema.sql
-rm -f /tmp/schema.sql  # Cleanup
+rm -f /tmp/schema.sql
 
-echo "MySQL setup completed successfully!"
+echo "MySQL setup completed successfully at $(date)"
