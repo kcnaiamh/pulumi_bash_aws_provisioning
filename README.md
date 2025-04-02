@@ -1,6 +1,8 @@
 ## Efficient AWS Infrastructure Provisioning with Pulumi: Automate Node.js Application Deployment with Systemd Service Chaining and MySQL Healthcheck
 
-![diagram-export-3-3-2025-8_40_44-PM](https://github.com/user-attachments/assets/1fc44d33-30b1-43f8-bc4e-0d6b9f8427ef)
+![diagram-export-4-2-2025-8_07_51-PM](https://github.com/user-attachments/assets/6547346d-1ee6-4a78-8a85-37864c8d0d6b)
+
+
 
 Lets spin up a fresh Linux VM and run the following command to make the environment ready.
 
