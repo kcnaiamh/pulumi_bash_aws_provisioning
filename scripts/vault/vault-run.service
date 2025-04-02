@@ -11,12 +11,12 @@ Requires=vault.service  # Will fail if vault.service cannot be activated
 Type=simple
 # Loads VAULT_ADDR, unseal keys, and other sensitive data
 EnvironmentFile=/etc/environment
-# Primary unseal/initialization script location
-ExecStart=/usr/local/bin/vault-setup.sh
+# Conditional execution: only run if Vault is not active
+ExecStart=/bin/bash -c '[ "$(systemctl is-active vault.service)" != "active" ] && /usr/local/bin/vault-setup.sh || echo "Vault is already running, skipping unseal."'
 # Restart policy (avoids restart loops for configuration errors)
 Restart=on-failure
 # Aggressive 180-second retry unsealing
-RestartSec=180
+RestartSec=60
 # Maintains service state after successful unseal
 RemainAfterExit=yes
 # Journal logging for systemd integration (consider syslog for sensitive operations)

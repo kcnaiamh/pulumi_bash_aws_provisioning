@@ -77,11 +77,7 @@ chmod 640 "${VAULT_CONFIG}/vault.hcl"
 
 # Start Vault service
 systemctl enable vault
-if systemctl is-active --quiet vault; then
-    systemctl restart vault
-else
-    systemctl start vault
-fi
+systemctl start vault
 
 
 # Set Vault API address for CLI commands

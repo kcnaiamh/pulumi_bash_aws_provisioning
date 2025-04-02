@@ -192,8 +192,6 @@ chown vault:vault /usr/local/bin/vault-check.sh
 chmod 500 /usr/local/bin/vault-check.sh
 
 systemctl enable --now vault-check.service
-
-sleep 240
 systemctl enable --now vault-run.service
 '''
 
