@@ -1,134 +1,152 @@
-## Efficient AWS Infrastructure Provisioning with Pulumi: Automate Node.js Application Deployment with Systemd Service Chaining and MySQL Healthcheck
+## Project Overview
 
-![diagram-export-4-2-2025-8_07_51-PM](https://github.com/user-attachments/assets/6547346d-1ee6-4a78-8a85-37864c8d0d6b)
+This project automates the provisioning of a secure AWS infrastructure using Pulumi with Python and integrates multiple components such as:
 
+- **Dynamic secrets management** with HashiCorp Vault.
+- **Database provisioning and configuration** using MySQL.
+- **Health monitoring** via Redis.
+- **Deployment** of a Node.js application.
+- **Automated setup and configuration** via bash scripts.
 
+The primary goal is to create a robust, automated, and secure deployment solution that minimizes manual intervention and enforces best practices with security in mind.
 
-Lets spin up a fresh Linux VM and run the following command to make the environment ready.
+## Architecture
 
-```
-sudo apt update
-```
+This is the top level overview of the whole infrastructure that the code will build.
 
-```
-sudo apt install -y unzip
-sudo apt install -y python3.12-venv
-```
+![](https://github.com/user-attachments/assets/6547346d-1ee6-4a78-8a85-37864c8d0d6b)
 
----
+## Technologies Used
 
-Now install AWS CLI: ([source](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html))
+- **Programming & Scripting Languages:**
 
-```
-curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip" 2>/dev/null
-unzip awscliv2.zip
-sudo ./aws/install
-```
+  - Python (Pulumi scripts)
+  - Bash (Setup and configuration scripts)
+  - Node.js (Application code)
 
-Configure AWS CLI by running the following command and giving appropriate credentials.
+- **Infrastructure & Cloud Services:**
 
-```
-aws configure
-```
+  - Pulumi with the `pulumi-aws`, `pulumi-tls` provider
+  - Amazon Web Services (AWS): EC2, VPC, Subnets, NAT Gateway, Internet Gateway, IAM, SSM, etc.
 
-> [!Todo]
-> Log into your AWS account and get the access key. Then export it.
+- **Databases & Data Stores:**
 
----
+  - MySQL (Database server)
+  - Redis (Health monitoring via pub/sub)
 
-Now install Pulumi: ([source](https://www.pulumi.com/docs/iac/download-install/))
+- **Security & Secrets Management:**
 
-```
-curl -fsSL https://get.pulumi.com | sh
-```
+  - **HashiCorp Vault** (Dynamic generation of temporary database credentials)
 
-```
-bash
-```
+- **System & Service Management:**
 
-Authenticate your pulumi account with temporary token
+  - Systemd (Service unit files for managing Node.js, MySQL, and Vault services)
 
-```
-pulumi login
-```
+- **Additional Tools & Utilities:**
 
-```
-mkdir -p ~/kc-service-infra
-cd ~/kc-service-infra
-```
+  - AWS CLI (Communicate with AWS components through bash scripts)
+  - Git (Cloning Node.js application repository)
+  - npm (For Node.js package installation)
+  - Command-line utilities: `curl`, `wget`, `unzip`, `jq`, `gpg`, `lsb-release`, `netcat-openbsd`, etc.
 
-Create a new pulumi project
+## Prerequisites
 
-```
-pulumi new https://github.com/kcnaiamh/pulumi_bash_aws_provisioning
-```
+Before running the project, ensure you have:
 
----
+- **Linux** host machine (or VM) running.
+- **AWS Account** with proper permissions and balance.
+- **Pulumi CLI** installed and configured.
+- **AWS CLI** installed and configured.
 
-Create an AWS Key Pair
+For setting up AWS & Pulumi CLI, you can [follow this blog](https://blog.kcnaiamh.com/installing-and-setting-up-aws-cli-and-pulumi-on-ubuntu-2404).
 
-```shell
-cd ~/.ssh/
-aws ec2 create-key-pair --key-name master-key --output text --query 'KeyMaterial' > master-key.id_rsa
-chmod 400 master-key.id_rsa
-```
+## Deployment & Execution
 
-This will save the private key as `master-key.id_rsa` in the `~/.ssh/` directory and restrict its permissions.
+**Attention**: Make sure you have all the prerequisites mentioned previously before proceeding for deployment.
 
----
+To deploy the infrastructure and services you just need to run 2 commands.
 
-Write your infrastructure provisioning code in `__main__.py` file.
+1. **Use The Template**
+   Yes, this repo is actually a Pulumi template. You can directly setup you project just running the following command in an **empty directory**.
 
-Now provision the infrastructure
+   ```
+   pulumi new https://github.com/kcnaiamh/pulumi_bash_aws_provisioning
+   ```
 
-```
-pulumi up --yes
-```
+2. **Run Pulumi Up**
+   This command will provision the AWS resources as defined in `__main__.py`.
 
----
+   ```
+   pulumi up --yes
+   ```
 
-As we have already created the config file, we can SSH into the DB server through the Node.js server:
+It will take 3/4 minute for provisioning the AWS infrastructure. But that doesn't mean you can use the webapp immediately. Cause the bash scripts runed inside EC2 instances will take time to finish execution.
 
-```
-ssh db-server
-```
+Wail for 10-15 minutes. Then type `http://<your_nodejs_app_public_ip>:3000` in your browser to see the webapp.
 
-Change the hostname of the DB server to `db-server` to make it easier to identify.
+## Security Considerations
 
-```
-sudo hostnamectl set-hostname db-server
-```
+- **Dynamic Credential Generation:**
+  Vault dynamically generates temporary database credentials. **Keep Vault keys secure and never expose them publicly.** Avoid logging credentials to log files—though, in this project, I have logged them for debugging purposes.
 
----
+- **Access Control:**
+  AWS IAM roles and security groups are configured to restrict access to resources. **Ensure that security groups and IAM policies follow the principle of least privilege** to minimize exposure.
 
-We can see that the Node.js application is running on port 3000. We can access it from anywhere using the public IP of the Node.js server.
+- **Sensitive Data:**
+  Environment variables and configuration files may contain sensitive data such as database passwords and API tokens. **Secure these files and manage permissions carefully.** Keep in mind that, by default, any user can read the `/etc/environment` file, so avoid storing sensitive credentials there. Even if you use if for automation, remove it in the process of last clean-up process in automation script (advice to me :)).
 
-```
-curl http://<PUBLIC IP>:3000
-```
+- **Service Hardening:**
+  Systemd services are configured to automatically restart upon failure, ensuring service continuity. **Use the least privilege principle for sensitive files, especially scripts executed by systemd or cron jobs running as a privileged user.** Regularly update and patch all installed packages. Additionally, note that the default user in an EC2 instance can use the `sudo` binary without a password. **For added security, consider enforcing password authentication for sudo access.**
 
----
+- **Communication Security:**
+  Always use secure communication channels such as HTTPS and SSH where possible. **Avoid exposing sensitive ports to the public internet.** In this project, TLS has been disabled in Vault to simplify the setup by avoiding certificate installation. Similarly, the Node.js server is not configured with a TLS certificate for HTTPS.
 
-Destroy all resources
+## Troubleshooting & Maintenance
 
-```
-pulumi destroy --yes
-```
+- **Pulumi Deployment Issues:**
 
-Delete stack
+  - Check Pulumi logs for errors.
+  - Ensure that AWS credentials and configurations are correct.
 
-```
-pulumi stack rm
-```
+- **Service Failures:**
 
----
+  - Use `systemctl status <service-name>` to view the status and logs of Node.js, MySQL, or Vault services.
+  - Check log files under `/var/log/` on the affected EC2 instance.
 
-**Problem With This Design**
+- **Script Failures:**
+  - Examine log outputs (e.g., `/var/log/mysql-setup.log`, `/var/log/redis-setup.log`) for error messages.
+  - Validate that all required environment variables are properly set.
 
-1. Only checks if MySQL is up and running before starting NodeJS application. Not when application is running.
-   So, if MySQL crashes or if not unreachable, NodeJS application will not work properly.
-2. MySQL availability is checked from NodeJS EC2 by probing to MySQL default port.
-   If the default port required to changed in future 'check-mysql.sh' file need to be updated in NodeJS EC2.
-   In case of firewall block the connection, NodeJS application will not start.
-3. For each Application server which depends on MySQL will need to have 'check-mysql.sh' file.
-4. No centralized monitoring for healthcheck data of all the services.
+## Challenges and Solutions
+
+During the automation process, I encountered several challenges. In this section, I'll highlight the most significant ones and how I resolved them.
+
+1. **Connecting Components**
+   Connecting multiple components was one of the most challenging parts. Debugging issues became time-consuming when too many things were running at once. To tackle this, I broke down the setup into smaller components. I spun up multiple VMs separately and manually established connections between them. This approach helped me understand what worked, what didn’t, and how to automate the process reliably.
+
+2. **Circular Dependency**
+   To secure the database connection, I configured Vault to generate dynamic credentials only from a specific IP—its own. However, this created a circular dependency:
+
+   - The MySQL EC2 instance needed to be running before Vault, as Vault’s setup script required a working database connection.
+   - At the same time, the MySQL setup script required Vault’s EC2 IP to execute certain MySQL commands.
+
+   To resolve this, I temporarily relaxed the security restrictions by allowing the entire `/24` CIDR range of the private subnet instead of just Vault’s IP. This ensured both instances could complete their setup without manual intervention.
+
+3. **Logging**
+   Debugging automation failures is crucial, especially when scripts crash. To improve visibility, I enabled detailed logging in every Bash script by using:
+
+   ```bash
+   exec > >(tee -a /var/log/logfile.log) 2>&1
+   set -euxo pipefail
+   ```
+
+   This setup ensures that:
+
+   - Every command and its output are logged to `/var/log/logfile.log`.
+   - Errors cause immediate script termination (`set -e`).
+   - Undefined variables trigger an error (`set -u`).
+   - Pipelines fail if any command within them fails (`set -o pipefail`).
+
+## Conclusion
+
+This project provides an end-to-end solution for automated, secure AWS infrastructure provisioning with dynamic secrets management, centralized health monitoring, and application deployment from Github. By leveraging Pulumi, AWS, Vault, MySQL, Redis, and Node.js, it addresses common challenges in modern cloud deployments and ensures a resilient, secure environment.
