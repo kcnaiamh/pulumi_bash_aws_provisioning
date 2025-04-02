@@ -15,8 +15,8 @@ EnvironmentFile=/etc/environment
 ExecStart=/usr/local/bin/vault-setup.sh
 # Restart policy (avoids restart loops for configuration errors)
 Restart=on-failure
-# Aggressive 5-second retry unsealing
-RestartSec=5
+# Aggressive 30-second retry unsealing
+RestartSec=30
 # Maintains service state after successful unseal
 RemainAfterExit=yes
 # Journal logging for systemd integration (consider syslog for sensitive operations)
