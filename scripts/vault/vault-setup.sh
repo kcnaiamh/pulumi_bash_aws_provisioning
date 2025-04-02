@@ -26,7 +26,7 @@ apt install -y wget jq redis-tools unzip
 
 # Install AWS CLI if not already present
 if ! command -v aws &>/dev/null; then
-	apt install pipx
+	apt install -y pipx
 	pipx ensurepath
 	pipx install awscli
 	aws --version
