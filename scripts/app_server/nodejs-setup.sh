@@ -16,18 +16,18 @@ function get_ssm_parameter() {
     local attempt=1
 
     while (($attempt < $max_attempts)); do
-        echo "Retrieving SSM parameter $param_name (attempt $attempt/$max_attempts)"
+        echo "Retrieving SSM parameter $param_name (attempt $attempt/$max_attempts)" >&2
         local value
         if value=$(aws ssm get-parameter --name "$param_name" --query "Parameter.Value" --output text --region "$REGION_NAME" 2>/dev/null); then
             echo "$value"
             return 0
         fi
         attempt=$((attempt + 1))
-        echo "Failed to retrieve SSM parameter, retrying in 5 seconds..."
+        echo "Failed to retrieve SSM parameter, retrying in 5 seconds..." >&2
         sleep 5
     done
 
-    echo "Failed to retrieve SSM parameter $param_name after $max_attempts attempts"
+    echo "Failed to retrieve SSM parameter $param_name after $max_attempts attempts" >&2
     return 1
 }
 
@@ -45,7 +45,7 @@ function main() {
     # Install AWS CLI if not present
     if ! command -v aws &>/dev/null; then
         apt install -y pipx
-        export PATH="$PATH:$HOME/.local/bin"
+        export PATH="$PATH:~/.local/bin"
         pipx ensurepath
         pipx install awscli
     fi
@@ -60,14 +60,12 @@ function main() {
     if [[ ! -d "$APP_DIR" ]]; then
         git clone https://github.com/kcnaiamh/Demo-App-1.git "$APP_DIR"
     else
-        echo "Application directory already exists, updating"
-        cd "$APP_DIR"
-        git pull
+        echo "Application directory already exists"
     fi
 
     # Install Node.js dependencies
     cd "$APP_DIR"
-    npm ci --production
+    npm install
 
     # Setup environment configuration
     cp "$APP_DIR/src/.env.example" "$APP_DIR/src/.env"
@@ -80,14 +78,14 @@ function main() {
     SECRET_ID=$(get_ssm_parameter "secret_id")
 
     # Update environment configuration
-    sed -i "s|^HOST_IP=.*/HOST_IP='${HOST_IP}'|" "$APP_DIR/src/.env"
-    sed -i "s|^MYSQL_HOST_IP=.*/MYSQL_HOST_IP='${DB_HOST_IP}'|" "$APP_DIR/src/.env"
-    sed -i "s|^MYSQL_DATABASE=.*/MYSQL_DATABASE='${DB_NAME}'|" "$APP_DIR/src/.env"
-    sed -i "s|^VAULT_ADDR=.*^VAULT_ADDR='http://${VAULT_HOST_IP}:8200'|" "$APP_DIR/src/.env"
-    sed -i "s|^REDIS_HOST=.*/REDIS_HOST='${REDIS_HOST_IP}'|" "$APP_DIR/src/.env"
-    sed -i "s|^REDIS_PASSWORD=.*/REDIS_PASSWORD='${REDIS_PASSWORD}'|" "$APP_DIR/src/.env"
-    sed -i "s|^VAULT_ROLE_ID=.*/VAULT_ROLE_ID='${ROLE_ID}'|" "$APP_DIR/src/.env"
-    sed -i "s|^VAULT_SECRET_ID=.*/VAULT_SECRET_ID='${SECRET_ID}'|" "$APP_DIR/src/.env"
+    sed -i "s|^HOST_IP=.*|HOST_IP='${HOST_IP}'|" "$APP_DIR/src/.env"
+    sed -i "s|^MYSQL_HOST_IP=.*|MYSQL_HOST_IP='${DB_HOST_IP}'|" "$APP_DIR/src/.env"
+    sed -i "s|^MYSQL_DATABASE=.*|MYSQL_DATABASE='${DB_NAME}'|" "$APP_DIR/src/.env"
+    sed -i "s|^VAULT_ADDR=.*|VAULT_ADDR='http://${VAULT_HOST_IP}:8200'|" "$APP_DIR/src/.env"
+    sed -i "s|^REDIS_HOST=.*|REDIS_HOST='${REDIS_HOST_IP}'|" "$APP_DIR/src/.env"
+    sed -i "s|^REDIS_PASSWORD=.*|REDIS_PASSWORD='${REDIS_PASSWORD}'|" "$APP_DIR/src/.env"
+    sed -i "s|^VAULT_ROLE_ID=.*|VAULT_ROLE_ID='${ROLE_ID}'|" "$APP_DIR/src/.env"
+    sed -i "s|^VAULT_SECRET_ID=.*|VAULT_SECRET_ID='${SECRET_ID}'|" "$APP_DIR/src/.env"
 
     # Secure permissions
     chown -R nodejs:nodejs "$APP_DIR"
