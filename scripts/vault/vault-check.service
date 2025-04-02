@@ -1,18 +1,31 @@
+# Vault Healthcheck Service Unit File
+# This service monitors HashiCorp Vault's availability by runing periodic health checks through vault-check.sh script.
+# If Vault becomes unresponsive, it triggers restarts while preventing system overload.
+
 [Unit]
 Description=Keeps Vault healthcheck service up and running
+# Ensure network stack is initialized before health checks begin
 After=network.target
 
 [Service]
 Type=simple
+# Load secrets/configuration from environment (VAULT_ADDR, tokens, etc.)
 EnvironmentFile=/etc/environment
+# Healthcheck script path - should validate Vault's sealed/unsealed status and API responses
 ExecStart=/usr/local/bin/vault-check.sh
+# Restart only on abnormal exits (not clean failures) to avoid masking root causes
 Restart=on-failure
-RestartSec=30
-StandardOutput=append:/var/log/vault-check.log
-StandardError=append:/var/log/vault-check.log
+# 10-second delay between restarts balances responsiveness and system protection
+RestartSec=10
+# Log both stdout and stderr to systemd journal for centralized logging
+StandardOutput=journal
+StandardError=journal
+# Maintain service as active after script exits
 RemainAfterExit=yes
+# Dedicated vault user/group ensures least-privilege access
 User=vault
 Group=vault
 
 [Install]
+# Integrate with standard server startup sequence
 WantedBy=multi-user.target

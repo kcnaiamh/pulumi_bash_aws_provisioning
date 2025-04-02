@@ -58,10 +58,8 @@ cd ~/kc-service-infra
 Create a new pulumi project
 
 ```
-pulumi new
+pulumi new https://github.com/kcnaiamh/pulumi_bash_aws_provisioning
 ```
-
-Now select `aws-python` template
 
 ---
 

@@ -1,17 +1,30 @@
+# Vault Auto-Unseal Service Unit File
+# Purpose: Automatically unseals HashiCorp Vault on failures.
+
 [Unit]
 Description=Keeps vault up and running by doing automatic unsealing
+# Critical dependencies - ensures vault.service is active first
 After=vault.service
-Requires=vault.service
+Requires=vault.service  # Will fail if vault.service cannot be activated
 
 [Service]
 Type=simple
+# Loads VAULT_ADDR, unseal keys, and other sensitive data
 EnvironmentFile=/etc/environment
+# Primary unseal/initialization script location
 ExecStart=/usr/local/bin/vault-setup.sh
+# Restart policy (avoids restart loops for configuration errors)
 Restart=on-failure
+# Aggressive 5-second retry unsealing
 RestartSec=5
+# Maintains service state after successful unseal
 RemainAfterExit=yes
+# Journal logging for systemd integration (consider syslog for sensitive operations)
+StandardOutput=journal
+StandardError=journal
 User=root
 Group=root
 
 [Install]
+# Standard multi-user target for server environments
 WantedBy=multi-user.target
