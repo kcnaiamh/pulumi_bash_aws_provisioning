@@ -2,7 +2,7 @@
 
 # Exit on error, trace commands, don't allow unset variables,
 # pileline status code is 0 iff all commands in pipeline has status code 0
-set -euxo pipefail
+set -eux
 exec > >(tee -a /var/log/vault-setup.log) 2>&1
 
 echo "Starting Vault setup at $(date)"
@@ -30,7 +30,7 @@ if ! command -v aws &>/dev/null; then
 	pipx ensurepath
 	pipx install awscli
 	pipx ensurepath
-	source ~/.bashrc
+	export PATH=$PATH:/root/.local/bin
 	aws --version
 fi
 
@@ -77,7 +77,7 @@ chmod 640 "${VAULT_CONFIG}/vault.hcl"
 
 # Start Vault service
 systemctl enable vault
-systemctl start vault
+systemctl restart vault
 
 # Set Vault API address for CLI commands
 export VAULT_ADDR="http://${VAULT_HOST_IP}:8200"
