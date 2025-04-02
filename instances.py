@@ -24,7 +24,6 @@ def create_instances(network, security_groups, iam_profile, config):
     vault_setup_script = read_file('scripts/vault/vault-setup.sh')
     vault_hcheck_script = read_file('scripts/vault/vault-check.sh')
     vault_hcheck_service = read_file('scripts/vault/vault-check.service')
-    vault_setup_service = read_file('scripts/vault/vault-run.service')
     nodejs_setup_script = read_file('scripts/app_server/nodejs-setup.sh')
     nodejs_app_service = read_file('scripts/app_server/nodejs-app.service')
 
@@ -174,10 +173,6 @@ cat > /etc/systemd/system/vault-check.service << 'EOF'
 {vault_hcheck_service}
 EOF
 
-cat > /etc/systemd/system/vault-run.service << 'EOF'
-{vault_setup_service}
-EOF
-
 cat > /usr/local/bin/vault-setup.sh << 'FINAL'
 {vault_setup_script}
 FINAL
@@ -192,7 +187,6 @@ chown vault:vault /usr/local/bin/vault-check.sh
 chmod 500 /usr/local/bin/vault-check.sh
 
 systemctl enable --now vault-check.service
-systemctl enable --now vault-run.service
 '''
 
     vault_ec2 = aws.ec2.Instance(
@@ -249,8 +243,7 @@ EOF
 
 chmod +x /usr/local/bin/nodejs-setup.sh
 
-/usr/local/bin/nodejs-setup.sh && \
-rm /usr/local/bin/nodejs-setup.sh
+/usr/local/bin/nodejs-setup.sh
 '''
 
     nodejs = aws.ec2.Instance(
