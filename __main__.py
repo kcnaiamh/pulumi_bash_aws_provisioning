@@ -35,4 +35,4 @@ instances = create_instances(
 
 # Export results
 create_config_file(instances, SSH_KEY_NAME)
-pulumi.export('NodeJS Running On', f"http://{instances['nodejs'].public_ip}:3000")
+pulumi.export('NodeJS Running On http://public_ip:3000', instances['nodejs'].public_ip)

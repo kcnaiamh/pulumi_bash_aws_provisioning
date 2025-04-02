@@ -97,3 +97,5 @@ function main() {
     systemctl enable --now nodejs-app
     echo "NodeJS setup completed successfully at $(date)"
 }
+
+main
