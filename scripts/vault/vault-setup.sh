@@ -29,6 +29,8 @@ if ! command -v aws &>/dev/null; then
 	apt install -y pipx
 	pipx ensurepath
 	pipx install awscli
+	pipx ensurepath
+	source ~/.bashrc
 	aws --version
 fi
 
