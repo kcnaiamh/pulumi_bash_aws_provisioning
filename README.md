@@ -122,9 +122,11 @@ Wail for 10-15 minutes. Then type `http://<your_nodejs_app_public_ip>:3000` in y
 During the automation process, I encountered several challenges. In this section, I'll highlight the most significant ones and how I resolved them.
 
 1. **Connecting Components**
+
    Connecting multiple components was one of the most challenging parts. Debugging issues became time-consuming when too many things were running at once. To tackle this, I broke down the setup into smaller components. I spun up multiple VMs separately and manually established connections between them. This approach helped me understand what worked, what didn’t, and how to automate the process reliably.
 
-2. **Circular Dependency**
+3. **Circular Dependency**
+
    To secure the database connection, I configured Vault to generate dynamic credentials only from a specific IP—its own. However, this created a circular dependency:
 
    - The MySQL EC2 instance needed to be running before Vault, as Vault’s setup script required a working database connection.
@@ -132,7 +134,8 @@ During the automation process, I encountered several challenges. In this section
 
    To resolve this, I temporarily relaxed the security restrictions by allowing the entire `/24` CIDR range of the private subnet instead of just Vault’s IP. This ensured both instances could complete their setup without manual intervention.
 
-3. **Logging**
+4. **Logging**
+
    Debugging automation failures is crucial, especially when scripts crash. To improve visibility, I enabled detailed logging in every Bash script by using:
 
    ```bash
