@@ -95,9 +95,6 @@ The `scripts/` directory includes subdirectories for each component. Each compon
   - **[scripts/vault/vault-check.sh](scripts/vault/vault-check.sh)**
     Monitors Vault’s status and publishes its health to Redis.
 
-  - **[scripts/vault/vault-run.service](scripts/vault/vault-run.service)**
-    A systemd unit file to automatically unseal Vault on failures.
-
   - **[scripts/vault/vault-check.service](scripts/vault/vault-check.service)**
     Ensures continuous execution of the Vault healthcheck process.
 
