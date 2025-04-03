@@ -14,7 +14,7 @@ The primary goal is to create a robust, automated, and secure deployment solutio
 
 This is the top level overview of the whole infrastructure that the code will build.
 
-![](https://github.com/user-attachments/assets/6547346d-1ee6-4a78-8a85-37864c8d0d6b)
+![diagram-export-4-3-2025-9_25_18-AM](https://github.com/user-attachments/assets/b1e727c3-4bd3-4ef7-a289-3dc7e140ea79)
 
 ## Technologies Used
 
